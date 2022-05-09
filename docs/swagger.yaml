@@ -1,0 +1,52 @@
+info:
+  contact: {}
+  title: AISA API
+  version: "1.0"
+paths:
+  /get_image:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: https://google.com/img.jpeg
+        in: query
+        name: image_url
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: We need image_url!!
+          schema: {}
+        "404":
+          description: Can not find image_url
+          schema: {}
+  /register_image:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: https://google.com/img.jpeg
+        in: query
+        name: image_url
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: We need image_url!!
+          schema: {}
+        "404":
+          description: Can not find image_url
+          schema: {}
+swagger: "2.0"

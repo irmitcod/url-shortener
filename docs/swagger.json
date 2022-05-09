@@ -1,0 +1,80 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "AISA API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/get_image": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "https://google.com/img.jpeg",
+                        "name": "image_url",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "We need image_url!!",
+                        "schema": {}
+                    },
+                    "404": {
+                        "description": "Can not find image_url",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/register_image": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "https://google.com/img.jpeg",
+                        "name": "image_url",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "We need image_url!!",
+                        "schema": {}
+                    },
+                    "404": {
+                        "description": "Can not find image_url",
+                        "schema": {}
+                    }
+                }
+            }
+        }
+    }
+}
