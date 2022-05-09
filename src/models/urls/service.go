@@ -3,6 +3,7 @@ package urls
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/go-redis/redis/v8"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -17,6 +18,7 @@ import (
 
 var (
 	MaxRequest = 250
+	UserID     = 250
 )
 
 var (
@@ -29,7 +31,7 @@ type Service interface {
 	CacheUrl2(url string, file []byte)
 	CacheUrl(url string)
 	GetInvalidUrl(url string) bool
-	GetUrl(url string) (buffer []byte, err rest_error.RestErr)
+	GetUrl(url string, userid int) (buffer []byte, err rest_error.RestErr)
 	EncodUrl(url string) rest_error.RestErr
 }
 type urlStruct struct {
@@ -111,8 +113,10 @@ func (i urlStruct) evictUrl() {
 	requestCounter += 1
 }
 
-func (i urlStruct) GetUrl(url string) (buffer []byte, error rest_error.RestErr) {
+func (i urlStruct) GetUrl(url string, UserID int) (buffer []byte, error rest_error.RestErr) {
 	//get urlStruct form lfu cache
+
+	url = fmt.Sprintf("%s::%d", url, UserID)
 	cache := i.lfuCache.Get(url)
 	if cache != nil {
 		i.entry.Infof("This  %s is already in lfu cache\n", url)
@@ -138,7 +142,7 @@ func (i urlStruct) GetUrl(url string) (buffer []byte, error rest_error.RestErr) 
 		}
 		//set url to cache for check is url in download
 		//progress and after 30 second is going to remove url form local cache
-		i.cache.SetWithTTL(url, 1, 0, 30*time.Second)
+		i.cache.SetWithTTL(url, 1, 0, 1*time.Second)
 
 		//create chan for return date or error from download
 		result := make(chan worker_result.Result)
@@ -146,7 +150,8 @@ func (i urlStruct) GetUrl(url string) (buffer []byte, error rest_error.RestErr) 
 
 		//add download and save to redis task with worker
 		i.wp.AddTask(func() {
-			response := base58.GenerateShortLink(url, "200")
+
+			response := base58.GenerateShortLink(url, UserID)
 
 			//cache urlStruct data with config and urlStruct format
 			//we return from result chan to return as bytes for user requested
@@ -179,7 +184,7 @@ func (i urlStruct) CacheUrlWithChan(url string, file []byte, result chan worker_
 	i.lfuCache.Set(url, file)
 	result <- worker_result.Result{
 		Rrr:    nil,
-		Status: 0,
+		Status: 200,
 		Value:  file,
 	}
 }

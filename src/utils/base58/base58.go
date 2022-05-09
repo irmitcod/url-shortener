@@ -8,8 +8,8 @@ import (
 	"os"
 )
 
-func GenerateShortLink(initialLink string, userId string) string {
-	urlHashBytes := sha256Of(initialLink + userId)
+func GenerateShortLink(initialLink string, userId int) string {
+	urlHashBytes := sha256Of(fmt.Sprintf("%s%d", initialLink, userId))
 	generatedNumber := new(big.Int).SetBytes(urlHashBytes).Uint64()
 	finalString := base58Encoded([]byte(fmt.Sprintf("%d", generatedNumber)))
 	return finalString[:6]
