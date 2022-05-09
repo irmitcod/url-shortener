@@ -6,6 +6,10 @@ import (
 
 type config struct {
 	Host          string `env:"HOST" env-default:"0.0.0.0"`
+	MongodbUrl    string `env:"MONGODB_URL" env-default:"mongodb://localhost:27017"`
+	MongoPassword string `env:"MONGODB_PASSWORD" env-default:""`
+	MongoDB       string `env:"MONGODB_DB" env-default:"url_shortener"`
+	MongoTimeout  int    `env:"MONGODB_TIMEOUT" env-default:"30"`
 	Port          int    `env:"PORT" env-default:"8080"`
 	Prefix        string `env:"PREFIX" env-default:"/url-shortener/"`
 	RedisAddress  string `env:"REDIS_ADDRESS" env-default:"localhost:6379"`

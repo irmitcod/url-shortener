@@ -9,7 +9,7 @@ import (
 	"time"
 	"url-shortener/config"
 	"url-shortener/src/models/worker_result"
-	"url-shortener/src/repository"
+	redis2 "url-shortener/src/repository/redis"
 	"url-shortener/src/utils/base58"
 	"url-shortener/src/utils/lfu"
 	"url-shortener/src/utils/rest_error"
@@ -34,16 +34,8 @@ type Service interface {
 	GetUrl(url string, userid int) (buffer []byte, err rest_error.RestErr)
 	EncodUrl(url string) rest_error.RestErr
 }
-type urlStruct struct {
-	cache               config.LocalCache
-	lfuCache            *lfu.Cache
-	repository          repository.UrlRepository
-	wp                  workerpool.WorkerPool
-	MaxWidth, MaxHeight int
-	entry               *log.Entry
-}
 
-func (i urlStruct) GetInvalidUrl(url string) bool {
+func (i UrlStruct) GetInvalidUrl(url string) bool {
 	ctx := context.Background()
 	_, err := i.repository.GetInvalidUrl(ctx, url)
 	if err == redis.Nil {
@@ -52,11 +44,11 @@ func (i urlStruct) GetInvalidUrl(url string) bool {
 	return true
 }
 
-func (i urlStruct) CacheUrl(url string) {
+func (i UrlStruct) CacheUrl(url string) {
 	i.repository.CacheInvalidUrl(url)
 }
 
-func (i urlStruct) EncodUrl(url string) (error rest_error.RestErr) {
+func (i UrlStruct) EncodUrl(url string) (error rest_error.RestErr) {
 	//get urlStruct form lfu cache
 	cache := i.lfuCache.Get(url)
 	if cache != nil {
@@ -105,7 +97,7 @@ func (i urlStruct) EncodUrl(url string) (error rest_error.RestErr) {
 	return nil
 }
 
-func (i urlStruct) evictUrl() {
+func (i UrlStruct) evictUrl() {
 	if requestCounter == MaxRequest {
 		i.lfuCache.Evict(1)
 		requestCounter = 0
@@ -113,7 +105,7 @@ func (i urlStruct) evictUrl() {
 	requestCounter += 1
 }
 
-func (i urlStruct) GetUrl(url string, UserID int) (buffer []byte, error rest_error.RestErr) {
+func (i UrlStruct) GetUrl(url string, UserID int) (buffer []byte, error rest_error.RestErr) {
 	//get urlStruct form lfu cache
 
 	url = fmt.Sprintf("%s::%d", url, UserID)
@@ -171,13 +163,13 @@ func (i urlStruct) GetUrl(url string, UserID int) (buffer []byte, error rest_err
 	return
 }
 
-func (i urlStruct) CacheUrl2(url string, file []byte) {
+func (i UrlStruct) CacheUrl2(url string, file []byte) {
 
 	//buffer, _ := i.Translate(maxWidth, maxHeight, format)
 	i.lfuCache.Set(url, file)
 	i.repository.CacheUrl(url, file)
 }
-func (i urlStruct) CacheUrlWithChan(url string, file []byte, result chan worker_result.Result) {
+func (i UrlStruct) CacheUrlWithChan(url string, file []byte, result chan worker_result.Result) {
 
 	//buffer, _ := i.Translate(maxWidth, maxHeight, format)
 	i.repository.CacheUrl(url, file)
@@ -188,8 +180,8 @@ func (i urlStruct) CacheUrlWithChan(url string, file []byte, result chan worker_
 		Value:  file,
 	}
 }
-func NewService(repo *repository.UrlRepository, wp workerpool.WorkerPool, maxWidth, maxHeight int, cache config.LocalCache, lf *lfu.Cache, entry *log.Entry) Service {
-	return &urlStruct{
+func NewService(repo *redis2.UrlRepository, wp workerpool.WorkerPool, maxWidth, maxHeight int, cache config.LocalCache, lf *lfu.Cache, entry *log.Entry) Service {
+	return &UrlStruct{
 		lfuCache:   lf,
 		cache:      cache,
 		wp:         wp,

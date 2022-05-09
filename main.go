@@ -10,7 +10,7 @@ import (
 	"url-shortener/config"
 	"url-shortener/src/controller"
 	"url-shortener/src/models/urls"
-	"url-shortener/src/repository"
+	"url-shortener/src/repository/mongo"
 	"url-shortener/src/utils/lfu"
 	"url-shortener/src/utils/workerpool"
 )
@@ -26,8 +26,12 @@ func main() {
 	configuration := config.GetConfig()
 	database := config.NewMemoryClient(configuration)
 
+	mongoClient, err := config.NewMongoClient(configuration.MongodbUrl, configuration.MongoDB, configuration.MongoTimeout)
+	if err != nil {
+		panic(err)
+	}
 	// Setup Repository
-	productRepository := repository.NewUrlRepository(database)
+	productRepository := mongo.NewUrlRepository(database, mongoClient)
 
 	// setup lfu cache
 	lfuCach := lfu.New()
