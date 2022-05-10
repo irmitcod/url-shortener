@@ -13,7 +13,7 @@ type MemoryClient struct {
 	MaxWidth, MaxHeight int
 }
 
-func NewMemoryClient(c *config) *MemoryClient {
+func NewMemoryClient(c *Config) *MemoryClient {
 
 	// Creating MemoryClient
 	mc := MemoryClient{

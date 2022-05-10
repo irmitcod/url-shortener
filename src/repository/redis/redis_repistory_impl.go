@@ -43,7 +43,7 @@ func (i *imageRepositoryImpl) GetUrl(ctx context.Context, url string) (string, e
 	return i.redis.Client.Get(ctx, key).Result()
 }
 
-func (i *imageRepositoryImpl) CacheUrl(url string, buffer []byte) {
+func (i *imageRepositoryImpl) CacheUrl(url string, buffer string) {
 	ctx := context.Background()
 	key := fmt.Sprintf("%s:%s", URLSNAMESAPCE, url)
 	i.redis.Client.Set(ctx, key, buffer, 0).Err()

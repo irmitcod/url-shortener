@@ -2,15 +2,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	ginSwagger "github.com/swaggo/gin-swagger"
-	"github.com/swaggo/gin-swagger/swaggerFiles"
+	"github.com/labstack/echo"
 	"log"
+	"time"
 	"url-shortener/config"
 	"url-shortener/src/controller"
-	"url-shortener/src/models/urls"
-	"url-shortener/src/repository/mongo"
+	_jwt "url-shortener/src/models/jwt/usecase"
+	_loginUsecase "url-shortener/src/models/login/usecase"
+	_urlusecase "url-shortener/src/models/url_shortener/usecase"
+	_usecase "url-shortener/src/models/users/usecase"
+	"url-shortener/src/repository/redis"
+	_urlShortenerRepo "url-shortener/src/repository/url_shortner/mongo"
+	"url-shortener/src/repository/users/mongo"
 	"url-shortener/src/utils/lfu"
 	"url-shortener/src/utils/workerpool"
 )
@@ -18,20 +21,12 @@ import (
 // @title    AISA API
 // @version  1.0
 func main() {
-
+	e := echo.New()
 	//config logger
-	entry := config.NewLogger()
+	//entry := config.NewLogger()
 
 	// Setup Configuration
 	configuration := config.GetConfig()
-	database := config.NewMemoryClient(configuration)
-
-	mongoClient, err := config.NewMongoClient(configuration.MongodbUrl, configuration.MongoDB, configuration.MongoTimeout)
-	if err != nil {
-		panic(err)
-	}
-	// Setup Repository
-	productRepository := mongo.NewUrlRepository(database, mongoClient)
 
 	// setup lfu cache
 	lfuCach := lfu.New()
@@ -48,18 +43,55 @@ func main() {
 	//setup localache
 	cache := config.NewCache()
 	// Setup Service
-	imageService := urls.NewService(&productRepository, wp, configuration.MaxHeight, configuration.MaxWidth, cache, lfuCach, entry)
 
-	//setup controller
-	handler := controller.NewHandler(imageService)
+	timeoutContext := time.Duration(configuration.MongoTimeout) * time.Second
+	database := config.NewMemoryClient(configuration)
+	redisRepository := redis.NewUrlRepository(database)
+
+	mongoDatabase := config.App.Mongo.Database(configuration.MongoDB)
+
+	userRepo := mongo.NewMongoRepository(mongoDatabase)
+	usrUsecase := _usecase.NewUserUsecase(userRepo, timeoutContext, redisRepository, cache)
+
+	jwt := _jwt.NewJwtUsecase(userRepo, timeoutContext, configuration)
+	userJwt := e.Group("")
+	jwt.SetJwtUser(userJwt)
+	adminJwt := e.Group("")
+	jwt.SetJwtUser(adminJwt)
+	generalJwt := e.Group("")
+	jwt.SetJwtUser(generalJwt)
+
+	urlShortenerRepo := _urlShortenerRepo.NewMongoRepository(mongoDatabase)
+	urlUsecase := _urlusecase.NewUrlUsecase(urlShortenerRepo, timeoutContext, redisRepository, cache, lfuCach)
+	controller.NewUserHandler(e, usrUsecase, urlUsecase)
+	//Handle For login endpoint
+	loginUsecase := _loginUsecase.NewLoginUsecase(userRepo, timeoutContext)
+	controller.NewLoginHandler(e, loginUsecase, configuration)
+
+	controller.NewUrlHandler(userJwt, urlUsecase, database)
+
+	appPort := fmt.Sprintf(":%d", configuration.Port)
+	log.Fatal(e.Start(appPort))
+
+	//mongoClient, err := config.NewMongoClient(configuration.MongodbUrl, configuration.MongoDB, configuration.MongoTimeout)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//// Setup Repository
+
+	//
+	//imageService := urls.NewService(&productRepository, wp, configuration.MaxHeight, configuration.MaxWidth, cache, lfuCach, entry)
+	//
+	////setup controller
+	//handler := controller.NewHandler(imageService)
 
 	// Start server
-	router := gin.Default()
-	router.Use(cors.Default())
-	prefix := router.Group(configuration.Prefix)
-	handler.Route(prefix)
-
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	serverAddr := fmt.Sprintf("%s:%d", configuration.Host, configuration.Port)
-	log.Panic(router.Run(serverAddr))
+	//router := gin.Default()
+	//router.Use(cors.Default())
+	//prefix := router.Group(configuration.Prefix)
+	//handler.Route(prefix)
+	//
+	//router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	//serverAddr := fmt.Sprintf("%s:%d", configuration.Host, configuration.Port)
+	//log.Panic(router.Run(serverAddr))
 }

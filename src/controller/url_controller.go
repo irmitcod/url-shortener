@@ -1,9 +1,7 @@
 package controller
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"url-shortener/src/models/urls"
 )
 
@@ -32,12 +30,12 @@ func (ic imageController) RegisterImage(c *gin.Context) {
 		return
 	}
 
-	r,err := ic.service.GetUrl(args.ImageUrl)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Message()})
-		return
-	}
-	c.JSON(http.StatusOK, r)
+	//r,err := ic.service.GetUrl(args.ImageUrl)
+	//if err != nil {
+	//	c.JSON(http.StatusNotFound, gin.H{"error": err.Message()})
+	//	return
+	//}
+	//c.JSON(http.StatusOK, r)
 }
 
 // @BasePath /url-shortener
@@ -61,20 +59,19 @@ func (ic imageController) GetUrl(c *gin.Context) {
 		return
 	}
 
-	d,err:= ic.service.GetUrl(args.ImageUrl)
-
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error":  fmt.Sprintf("Unable to decode JSON request body: %v", err)})
-		return
-	}
-
+	//d,err:= ic.service.GetUrl(args.ImageUrl)
+	//
+	//if err != nil {
+	//	c.JSON(http.StatusNotFound, gin.H{"error":  fmt.Sprintf("Unable to decode JSON request body: %v", err)})
+	//	return
+	//}
 
 	//urls, err := ic.service.GetUrl(args.ImageUrl)
 	//if err != nil {
 	//	c.JSON(http.StatusNotFound, gin.H{"error": err.Message()})
 	//	return
 	//}
-	c.JSON(http.StatusOK, string(d))
+	//c.JSON(http.StatusOK, string(d))
 }
 
 type SiteMetaInterfaces interface {

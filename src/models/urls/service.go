@@ -10,7 +10,6 @@ import (
 	"url-shortener/config"
 	"url-shortener/src/models/worker_result"
 	redis2 "url-shortener/src/repository/redis"
-	"url-shortener/src/utils/base58"
 	"url-shortener/src/utils/lfu"
 	"url-shortener/src/utils/rest_error"
 	"url-shortener/src/utils/workerpool"
@@ -67,12 +66,6 @@ func (i UrlStruct) EncodUrl(url string) (error rest_error.RestErr) {
 	_, err := i.repository.GetUrl(ctx, url)
 
 	if err == redis.Nil {
-		//create name spaces for local cache for is urk in download progress or not
-		_, ok := i.cache.Get(url)
-		if ok {
-			i.entry.Infof("This  %s in download proggress\n", url)
-			return nil
-		}
 
 		//set url to cache for check is url in download
 		//progress and after 30 second is going to remove url form local cache
@@ -143,15 +136,15 @@ func (i UrlStruct) GetUrl(url string, UserID int) (buffer []byte, error rest_err
 		//add download and save to redis task with worker
 		i.wp.AddTask(func() {
 
-			response := base58.GenerateShortLink(url, UserID)
-
-			//cache urlStruct data with config and urlStruct format
-			//we return from result chan to return as bytes for user requested
-			go i.CacheUrlWithChan(url, []byte(response), result)
+			//response := base58.GenerateShortLink(url, UserID)
+			//
+			////cache urlStruct data with config and urlStruct format
+			////we return from result chan to return as bytes for user requested
+			//go i.CacheUrlWithChan(url, []byte(response), result)
 		})
 		res := <-result
 		if res.Status == 200 {
-			buffer = res.Value
+			//buffer = res.Value
 		} else {
 			error = rest_error.NewNotFoundError("this url is not valid and couldn't fine any urlStruct from this url")
 		}
@@ -167,18 +160,18 @@ func (i UrlStruct) CacheUrl2(url string, file []byte) {
 
 	//buffer, _ := i.Translate(maxWidth, maxHeight, format)
 	i.lfuCache.Set(url, file)
-	i.repository.CacheUrl(url, file)
+	//i.repository.CacheUrl(url, file)
 }
 func (i UrlStruct) CacheUrlWithChan(url string, file []byte, result chan worker_result.Result) {
 
 	//buffer, _ := i.Translate(maxWidth, maxHeight, format)
-	i.repository.CacheUrl(url, file)
-	i.lfuCache.Set(url, file)
-	result <- worker_result.Result{
-		Rrr:    nil,
-		Status: 200,
-		Value:  file,
-	}
+	////i.repository.CacheUrl(url, file)
+	//i.lfuCache.Set(url, file)
+	//result <- worker_result.Result{
+	//	Rrr:    nil,
+	//	Status: 200,
+	//	Value:  file,
+	//}
 }
 func NewService(repo *redis2.UrlRepository, wp workerpool.WorkerPool, maxWidth, maxHeight int, cache config.LocalCache, lf *lfu.Cache, entry *log.Entry) Service {
 	return &UrlStruct{
