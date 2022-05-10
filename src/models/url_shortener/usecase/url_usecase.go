@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"time"
@@ -43,9 +44,9 @@ func (uu *urlUsecase) GetInvalidUrl(url string) bool {
 
 func (i *urlUsecase) EncodUrl(UserID, url string) (buffer string, error rest_error.RestErr) {
 	//get urlStruct form lfu cache
-
+	key := base58.GenerateShortLink(url, UserID)
 	url = fmt.Sprintf("%s::%s", url, UserID)
-	cache := i.lfuCache.Get(url)
+	cache := i.lfuCache.Get(key)
 	if cache != nil {
 		//i.entry.Infof("This  %s is already in lfu cache\n", url)
 		buffer = cache.(string)
@@ -53,14 +54,14 @@ func (i *urlUsecase) EncodUrl(UserID, url string) (buffer string, error rest_err
 	}
 
 	//check url is invalid or not
-	b := i.GetInvalidUrl(url)
+	b := i.GetInvalidUrl(key)
 	if b {
 		error = rest_error.NewNotFoundError("this url is not valid and couldn't fine any urlStruct from this url")
 		return
 	}
 
 	ctx := context.Background()
-	bufferStr, err := i.redisRepo.GetUrl(ctx, url)
+	bufferStr, err := i.redisRepo.GetUrl(ctx, key)
 	if err == redis.Nil {
 
 		//create chan for return date or error from download
@@ -68,12 +69,9 @@ func (i *urlUsecase) EncodUrl(UserID, url string) (buffer string, error rest_err
 		defer close(result)
 
 		//add download and save to redis task with worker
-
-		response := base58.GenerateShortLink(url, UserID)
-
 		//cache urlStruct data with config and urlStruct format
 		//we return from result chan to return as bytes for user requested
-		go i.CacheUrlWithChan(url, (response), result)
+		go i.CacheUrlWithChan(url, (key), result)
 
 		res := <-result
 		if res.Status == 200 {
@@ -114,12 +112,29 @@ func (uu *urlUsecase) InsertOne(c context.Context, m *url_shortener.UrlShortener
 
 	ctx, cancel := context.WithTimeout(c, uu.contextTimeout)
 	defer cancel()
-	encodeURl, errREs := uu.EncodUrl(m.UserID.String(), m.OriginalURL)
-	if errREs != nil {
-		return nil, errREs
+
+	key := base58.GenerateShortLink(m.OriginalURL, m.UserID.String())
+
+	cache := uu.lfuCache.Get(key)
+	if cache != nil {
+		//i.entry.Infof("This  %s is already in lfu cache\n", url)
+
+		return nil, errors.New("already exist")
 	}
+
+	//check url is invalid or not
+	b := uu.GetInvalidUrl(key)
+	if b {
+		return nil, errors.New("this url is not valid and couldn't fine any urlStruct from this url")
+	}
+
+	shortner, err := uu.urlRepo.FindOneByKey(c, key)
+	if err == nil {
+		return shortner, nil
+	}
+
 	m.ID = primitive.NewObjectID()
-	m.Key = encodeURl
+	m.Key = key
 	m.CreatedAt = time.Now()
 	m.UpdatedAt = time.Now()
 
@@ -127,6 +142,9 @@ func (uu *urlUsecase) InsertOne(c context.Context, m *url_shortener.UrlShortener
 	if err != nil {
 		return res, err
 	}
+
+	uu.lfuCache.Set(key, m.OriginalURL)
+	uu.redisRepo.CacheUrl(key, m.OriginalURL)
 
 	return res, nil
 }
@@ -143,17 +161,25 @@ func (uu *urlUsecase) FindOne(c context.Context, id string) (*url_shortener.UrlS
 
 	return res, nil
 }
-func (uu *urlUsecase) FindOneByKey(c context.Context, id string) (*url_shortener.UrlShortener, error) {
+func (uu *urlUsecase) FindOneByKey(c context.Context, id string) (string, error) {
+
+	cache := uu.lfuCache.Get(id)
+	if cache != nil {
+		//i.entry.Infof("This  %s is already in lfu cache\n", url)
+		return cache.(string), nil
+	}
 
 	ctx, cancel := context.WithTimeout(c, uu.contextTimeout)
 	defer cancel()
 
 	res, err := uu.urlRepo.FindOneByKey(ctx, id)
 	if err != nil {
-		return res, err
+		return "", err
 	}
+	uu.lfuCache.Set(id, res.OriginalURL)
+	uu.redisRepo.CacheUrl(id, res.OriginalURL)
 
-	return res, nil
+	return res.OriginalURL, nil
 }
 
 func (uu *urlUsecase) GetAllWithPage(c context.Context, rp int64, p int64, filter interface{}, setsort interface{}) ([]url_shortener.UrlShortener, int64, error) {

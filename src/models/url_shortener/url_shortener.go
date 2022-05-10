@@ -28,7 +28,7 @@ type UrlRepository interface {
 type UrlUsecase interface {
 	InsertOne(ctx context.Context, u *UrlShortener) (*UrlShortener, error)
 	FindOne(ctx context.Context, id string) (*UrlShortener, error)
-	FindOneByKey(ctx context.Context, id string) (*UrlShortener, error)
+	FindOneByKey(ctx context.Context, id string) (string, error)
 	GetAllWithPage(ctx context.Context, rp int64, p int64, filter interface{}, setsort interface{}) ([]UrlShortener, int64, error)
 	UpdateOne(ctx context.Context, cat *UrlShortener, id string) (*UrlShortener, error)
 	CacheUrl(url string)

@@ -23,16 +23,16 @@ type UserHandler struct {
 	UrlUsecase url_shortener.UrlUsecase
 }
 
-func NewUserHandler(e *echo.Echo, uu users.UserUsecase, usecase url_shortener.UrlUsecase) {
+func NewUserHandler(genralJwt *echo.Group, adminJwt *echo.Group, userJwt *echo.Group, uu users.UserUsecase, usecase url_shortener.UrlUsecase) {
 	handler := &UserHandler{
 		UsrUsecase: uu,
 		UrlUsecase: usecase,
 	}
-	e.GET("/:key", handler.Redirect)
-	e.POST("/user", handler.InsertOne)
-	e.GET("/user", handler.FindOne)
-	e.GET("/users", handler.GetAll)
-	e.PUT("/user", handler.UpdateOne)
+	genralJwt.GET("/:key", handler.Redirect)
+	genralJwt.POST("/user", handler.InsertOne)
+	userJwt.GET("/user", handler.FindOne)
+	adminJwt.GET("/users", handler.GetAll)
+	userJwt.PUT("/user", handler.UpdateOne)
 }
 
 func isRequestValid(m *users.User) (bool, error) {
@@ -47,11 +47,11 @@ func isRequestValid(m *users.User) (bool, error) {
 func (user *UserHandler) Redirect(c echo.Context) error {
 	url := c.Param("key")
 	ctx := c.Request().Context()
-	item, err := user.UrlUsecase.FindOneByKey(ctx, url)
+	OriginalURL, err := user.UrlUsecase.FindOneByKey(ctx, url)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, err)
 	}
-	return c.Redirect(http.StatusMovedPermanently, item.OriginalURL)
+	return c.Redirect(http.StatusMovedPermanently, OriginalURL)
 }
 func (user *UserHandler) InsertOne(c echo.Context) error {
 	var (

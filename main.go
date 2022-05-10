@@ -63,7 +63,7 @@ func main() {
 
 	urlShortenerRepo := _urlShortenerRepo.NewMongoRepository(mongoDatabase)
 	urlUsecase := _urlusecase.NewUrlUsecase(urlShortenerRepo, timeoutContext, redisRepository, cache, lfuCach)
-	controller.NewUserHandler(e, usrUsecase, urlUsecase)
+	controller.NewUserHandler(generalJwt, adminJwt, userJwt, usrUsecase, urlUsecase)
 	//Handle For login endpoint
 	loginUsecase := _loginUsecase.NewLoginUsecase(userRepo, timeoutContext)
 	controller.NewLoginHandler(e, loginUsecase, configuration)
@@ -73,25 +73,4 @@ func main() {
 	appPort := fmt.Sprintf(":%d", configuration.Port)
 	log.Fatal(e.Start(appPort))
 
-	//mongoClient, err := config.NewMongoClient(configuration.MongodbUrl, configuration.MongoDB, configuration.MongoTimeout)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//// Setup Repository
-
-	//
-	//imageService := urls.NewService(&productRepository, wp, configuration.MaxHeight, configuration.MaxWidth, cache, lfuCach, entry)
-	//
-	////setup controller
-	//handler := controller.NewHandler(imageService)
-
-	// Start server
-	//router := gin.Default()
-	//router.Use(cors.Default())
-	//prefix := router.Group(configuration.Prefix)
-	//handler.Route(prefix)
-	//
-	//router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	//serverAddr := fmt.Sprintf("%s:%d", configuration.Host, configuration.Port)
-	//log.Panic(router.Run(serverAddr))
 }
