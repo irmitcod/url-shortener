@@ -53,22 +53,22 @@ func main() {
 	userRepo := mongo.NewMongoRepository(mongoDatabase)
 	usrUsecase := _usecase.NewUserUsecase(userRepo, timeoutContext, redisRepository, cache)
 
-	jwt := _jwt.NewJwtUsecase(userRepo, timeoutContext, configuration)
+	jwt := _jwt.NewJwtUsecase(userRepo, 4380*time.Hour, configuration)
 	userJwt := e.Group("")
 	jwt.SetJwtUser(userJwt)
 	adminJwt := e.Group("")
-	jwt.SetJwtUser(adminJwt)
+	jwt.SetJwtAdmin(adminJwt)
 	generalJwt := e.Group("")
-	jwt.SetJwtUser(generalJwt)
+	jwt.SetJwtGeneral(generalJwt)
 
 	urlShortenerRepo := _urlShortenerRepo.NewMongoRepository(mongoDatabase)
 	urlUsecase := _urlusecase.NewUrlUsecase(urlShortenerRepo, timeoutContext, redisRepository, cache, lfuCach)
-	controller.NewUserHandler(generalJwt, adminJwt, userJwt, usrUsecase, urlUsecase)
+	controller.NewUserHandler(e, userJwt, usrUsecase, urlUsecase, configuration)
 	//Handle For login endpoint
 	loginUsecase := _loginUsecase.NewLoginUsecase(userRepo, timeoutContext)
 	controller.NewLoginHandler(e, loginUsecase, configuration)
 
-	controller.NewUrlHandler(userJwt, urlUsecase, database)
+	controller.NewUrlHandler(userJwt, urlUsecase, database, configuration)
 
 	appPort := fmt.Sprintf(":%d", configuration.Port)
 	log.Fatal(e.Start(appPort))

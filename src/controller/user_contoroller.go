@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"url-shortener/config"
 	"url-shortener/src/models/url_shortener"
 	"url-shortener/src/models/users"
 
@@ -23,15 +24,15 @@ type UserHandler struct {
 	UrlUsecase url_shortener.UrlUsecase
 }
 
-func NewUserHandler(genralJwt *echo.Group, adminJwt *echo.Group, userJwt *echo.Group, uu users.UserUsecase, usecase url_shortener.UrlUsecase) {
+func NewUserHandler(e *echo.Echo, userJwt *echo.Group, uu users.UserUsecase, usecase url_shortener.UrlUsecase, configuration *config.Config) {
 	handler := &UserHandler{
 		UsrUsecase: uu,
 		UrlUsecase: usecase,
 	}
-	genralJwt.GET("/:key", handler.Redirect)
-	genralJwt.POST("/user", handler.InsertOne)
+	e.GET("/:key", handler.Redirect)
+	e.POST("/user", handler.InsertOne)
 	userJwt.GET("/user", handler.FindOne)
-	adminJwt.GET("/users", handler.GetAll)
+	userJwt.GET("/users", handler.GetAll)
 	userJwt.PUT("/user", handler.UpdateOne)
 }
 

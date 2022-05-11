@@ -131,7 +131,7 @@ func (m *mongoRepository) UpdateOne(ctx context.Context, urlShortener *url_short
 
 	filter := bson.M{"_id": idHex}
 	update := bson.M{"$set": bson.M{
-		"key":        urlShortener.Key,
+		"key":        urlShortener.ShortUrl,
 		"value":      urlShortener.OriginalURL,
 		"updated_at": time.Now(),
 	}}

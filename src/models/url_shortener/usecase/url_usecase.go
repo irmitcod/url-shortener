@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"time"
@@ -36,7 +35,7 @@ func (uu *urlUsecase) CacheUrl(url string) {
 func (uu *urlUsecase) GetInvalidUrl(url string) bool {
 	ctx := context.Background()
 	_, err := uu.redisRepo.GetInvalidUrl(ctx, url)
-	if err == redis.Nil {
+	if err != nil {
 		return false
 	}
 	return true
@@ -119,22 +118,30 @@ func (uu *urlUsecase) InsertOne(c context.Context, m *url_shortener.UrlShortener
 	if cache != nil {
 		//i.entry.Infof("This  %s is already in lfu cache\n", url)
 
-		return nil, errors.New("already exist")
+		return &url_shortener.UrlShortener{
+			ShortUrl:    key,
+			OriginalURL: m.OriginalURL,
+		}, nil
 	}
 
 	//check url is invalid or not
-	b := uu.GetInvalidUrl(key)
-	if b {
-		return nil, errors.New("this url is not valid and couldn't fine any urlStruct from this url")
+	b, _ := uu.redisRepo.GetUrl(ctx, key)
+	if len(b) > 0 {
+		return &url_shortener.UrlShortener{
+			ShortUrl:    key,
+			OriginalURL: m.OriginalURL,
+		}, nil
 	}
 
 	shortner, err := uu.urlRepo.FindOneByKey(c, key)
 	if err == nil {
+		uu.lfuCache.Set(key, m.OriginalURL)
+		uu.redisRepo.CacheUrl(key, m.OriginalURL)
 		return shortner, nil
 	}
 
 	m.ID = primitive.NewObjectID()
-	m.Key = key
+	m.ShortUrl = key
 	m.CreatedAt = time.Now()
 	m.UpdatedAt = time.Now()
 

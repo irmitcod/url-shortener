@@ -12,7 +12,7 @@ func GenerateShortLink(initialLink string, userId string) string {
 	urlHashBytes := sha256Of(fmt.Sprintf("%s%s", initialLink, userId))
 	generatedNumber := new(big.Int).SetBytes(urlHashBytes).Uint64()
 	finalString := base58Encoded([]byte(fmt.Sprintf("%d", generatedNumber)))
-	return finalString[:6]
+	return finalString[:8]
 }
 
 func sha256Of(input string) []byte {

@@ -7,6 +7,7 @@ import (
 type Config struct {
 	Host          string `env:"HOST" env-default:"0.0.0.0"`
 	MongodbUrl    string `env:"MONGODB_URL" env-default:"mongodb://localhost:27017"`
+	BaseUrl       string `env:"BASE_URL" env-default:"http://localhost:8080/"`
 	MongoPassword string `env:"MONGODB_PASSWORD" env-default:""`
 	MongoDB       string `env:"MONGODB_DB" env-default:"url_shortener"`
 	MongoTimeout  int    `env:"MONGODB_TIMEOUT" env-default:"30"`

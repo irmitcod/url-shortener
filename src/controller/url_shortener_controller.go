@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"github.com/labstack/echo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,12 +22,14 @@ type ResponseUrlError struct {
 type UrlShotenerHandler struct {
 	UrlShotenerUsecase url_shortener.UrlUsecase
 	Database           *config.MemoryClient
+	configuration      *config.Config
 }
 
-func NewUrlHandler(userJwt *echo.Group, uu url_shortener.UrlUsecase, database *config.MemoryClient) {
+func NewUrlHandler(userJwt *echo.Group, uu url_shortener.UrlUsecase, database *config.MemoryClient, configuration *config.Config) {
 	handler := &UrlShotenerHandler{
 		UrlShotenerUsecase: uu,
 		Database:           database,
+		configuration:      configuration,
 	}
 	userJwt.POST("/UrlShotener", handler.InsertOne)
 	userJwt.GET("/UrlShotener", handler.FindOne)
@@ -70,6 +73,7 @@ func (UrlShotener *UrlShotenerHandler) InsertOne(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
+	result.ShortUrl = fmt.Sprintf("%s%s", UrlShotener.configuration.BaseUrl, result.ShortUrl)
 
 	return c.JSON(http.StatusOK, result)
 }
@@ -87,7 +91,7 @@ func (UrlShotener *UrlShotenerHandler) FindOne(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-
+	result.ShortUrl = fmt.Sprintf("%s%s", UrlShotener.configuration.BaseUrl, result.ShortUrl)
 	return c.JSON(http.StatusOK, result)
 }
 
