@@ -22,7 +22,6 @@ type User struct {
 type UserRepository interface {
 	InsertOne(ctx context.Context, u *User) (*User, error)
 	FindOne(ctx context.Context, id string) (*User, error)
-	GetAllWithPage(ctx context.Context, rp int64, p int64, filter interface{}, setsort interface{}) ([]User, int64, error)
 	UpdateOne(ctx context.Context, user *User, id string) (*User, error)
 	GetByCredential(ctx context.Context, username string, password string) (*User, error)
 }
@@ -30,6 +29,5 @@ type UserRepository interface {
 type UserUsecase interface {
 	InsertOne(ctx context.Context, u *User) (*User, error)
 	FindOne(ctx context.Context, id string) (*User, error)
-	GetAllWithPage(ctx context.Context, rp int64, p int64, filter interface{}, setsort interface{}) ([]User, int64, error)
 	UpdateOne(ctx context.Context, user *User, id string) (*User, error)
 }

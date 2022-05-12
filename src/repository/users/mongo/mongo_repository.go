@@ -2,14 +2,12 @@ package mongo
 
 import (
 	"context"
-	"fmt"
 	"time"
 	"url-shortener/mongo"
 	"url-shortener/src/models/users"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type mongoRepository struct {
@@ -56,53 +54,6 @@ func (m *mongoRepository) FindOne(ctx context.Context, id string) (*users.User, 
 	}
 
 	return &user, nil
-}
-
-func (m *mongoRepository) GetAllWithPage(ctx context.Context, rp int64, p int64, filter interface{}, setsort interface{}) ([]users.User, int64, error) {
-
-	var (
-		user []users.User
-		skip int64
-		opts *options.FindOptions
-	)
-
-	skip = (p * rp) - rp
-	if setsort != nil {
-		opts = options.MergeFindOptions(
-			options.Find().SetLimit(rp),
-			options.Find().SetSkip(skip),
-			options.Find().SetSort(setsort),
-		)
-	} else {
-		opts = options.MergeFindOptions(
-			options.Find().SetLimit(rp),
-			options.Find().SetSkip(skip),
-		)
-	}
-
-	cursor, err := m.Collection.Find(
-		ctx,
-		filter,
-		opts,
-	)
-
-	if err != nil {
-		return nil, 0, err
-	}
-	if cursor == nil {
-		return nil, 0, fmt.Errorf("nil cursor value")
-	}
-	err = cursor.All(ctx, &user)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	count, err := m.Collection.CountDocuments(ctx, filter)
-	if err != nil {
-		return user, 0, err
-	}
-
-	return user, count, err
 }
 
 func (m *mongoRepository) UpdateOne(ctx context.Context, user *users.User, id string) (*users.User, error) {

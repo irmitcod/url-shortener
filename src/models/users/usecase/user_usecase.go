@@ -56,19 +56,6 @@ func (user *userUsecase) FindOne(c context.Context, id string) (*users.User, err
 	return res, nil
 }
 
-func (user *userUsecase) GetAllWithPage(c context.Context, rp int64, p int64, filter interface{}, setsort interface{}) ([]users.User, int64, error) {
-
-	ctx, cancel := context.WithTimeout(c, user.contextTimeout)
-	defer cancel()
-
-	res, count, err := user.userRepo.GetAllWithPage(ctx, rp, p, filter, setsort)
-	if err != nil {
-		return res, count, err
-	}
-
-	return res, count, nil
-}
-
 func (user *userUsecase) UpdateOne(c context.Context, m *users.User, id string) (*users.User, error) {
 
 	ctx, cancel := context.WithTimeout(c, user.contextTimeout)

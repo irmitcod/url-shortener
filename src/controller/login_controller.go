@@ -36,6 +36,7 @@ func isLoginRequestValid(m *users.Login) (bool, error) {
 	return true, nil
 }
 
+// CreateJwtUser create user with Username and password and Name
 func (login *LoginHandler) CreateJwtUser(c echo.Context) error {
 
 	var (
@@ -44,11 +45,13 @@ func (login *LoginHandler) CreateJwtUser(c echo.Context) error {
 		loginPayload users.Login
 	)
 
+	// bind user input
 	err = c.Bind(&loginPayload)
 	if err != nil {
 		return c.JSON(http.StatusUnprocessableEntity, err.Error())
 	}
 
+	//check validation for request
 	if ok, err := isLoginRequestValid(&loginPayload); !ok {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -58,22 +61,26 @@ func (login *LoginHandler) CreateJwtUser(c echo.Context) error {
 		ctx = context.Background()
 	}
 
+	//get user with User name and password
 	res, err := login.LoginUsecase.GetUser(ctx, loginPayload.Username, loginPayload.Password)
 	if err != nil {
 		return c.String(http.StatusUnauthorized, "Your username or password were wrong")
 	}
 
+	//set life time of the token
 	lifetime, err := strconv.ParseInt(login.Config.Lifetime, 10, 64)
 	if err != nil {
 		lifetime = 60
 	}
 
 	secret := login.Config.Secret
+	//create jtw token for api and authorization
 	token, err = createJwtToken(res.ID.Hex(), "user", lifetime, secret)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "something went wrong")
 	}
 
+	//response
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"token":      token,
 		"expires_in": lifetime,
@@ -81,6 +88,7 @@ func (login *LoginHandler) CreateJwtUser(c echo.Context) error {
 
 }
 
+// CreateJwtAdmin Create jwt admin is TODO list for next update
 func (login *LoginHandler) CreateJwtAdmin(c echo.Context) error {
 
 	var (

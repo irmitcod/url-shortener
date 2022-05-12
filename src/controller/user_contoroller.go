@@ -2,16 +2,12 @@ package controller
 
 import (
 	"context"
-	"math"
 	"net/http"
-	"strconv"
 	"url-shortener/config"
 	"url-shortener/src/models/url_shortener"
 	"url-shortener/src/models/users"
 
 	"github.com/labstack/echo"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	validator "gopkg.in/go-playground/validator.v9"
 )
 
@@ -32,10 +28,10 @@ func NewUserHandler(e *echo.Echo, userJwt *echo.Group, uu users.UserUsecase, use
 	e.GET("/:key", handler.Redirect)
 	e.POST("/user", handler.InsertOne)
 	userJwt.GET("/user", handler.FindOne)
-	userJwt.GET("/users", handler.GetAll)
 	userJwt.PUT("/user", handler.UpdateOne)
 }
 
+// check is valid request
 func isRequestValid(m *users.User) (bool, error) {
 	validate := validator.New()
 	err := validate.Struct(m)
@@ -45,21 +41,28 @@ func isRequestValid(m *users.User) (bool, error) {
 	return true, nil
 }
 
+// Redirect this end point is for redirect to main url
+//@param is key for getting original url
 func (user *UserHandler) Redirect(c echo.Context) error {
+	//get key form main url
 	url := c.Param("key")
 	ctx := c.Request().Context()
+	// get original url by key
 	OriginalURL, err := user.UrlUsecase.FindOneByKey(ctx, url)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, err)
 	}
+	//redirect ro original url
 	return c.Redirect(http.StatusMovedPermanently, OriginalURL)
 }
+
+// InsertOne create user
 func (user *UserHandler) InsertOne(c echo.Context) error {
 	var (
 		usr users.User
 		err error
 	)
-
+	// get user paramter
 	err = c.Bind(&usr)
 	if err != nil {
 		return c.JSON(http.StatusUnprocessableEntity, err.Error())
@@ -75,6 +78,7 @@ func (user *UserHandler) InsertOne(c echo.Context) error {
 		ctx = context.Background()
 	}
 
+	//insert user to mongo database
 	result, err := user.UsrUsecase.InsertOne(ctx, &usr)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -83,6 +87,7 @@ func (user *UserHandler) InsertOne(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
+// FindOne TODO list FindOne
 func (user *UserHandler) FindOne(c echo.Context) error {
 
 	id := c.QueryParam("id")
@@ -100,58 +105,7 @@ func (user *UserHandler) FindOne(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
-func (user *UserHandler) GetAll(c echo.Context) error {
-
-	type Response struct {
-		Total       int64        `json:"total"`
-		PerPage     int64        `json:"per_page"`
-		CurrentPage int64        `json:"current_page"`
-		LastPage    int64        `json:"last_page"`
-		From        int64        `json:"from"`
-		To          int64        `json:"to"`
-		User        []users.User `json:"users"`
-	}
-
-	var (
-		res   []users.User
-		count int64
-	)
-
-	rp, err := strconv.ParseInt(c.QueryParam("rp"), 10, 64)
-	if err != nil {
-		rp = 25
-	}
-
-	page, err := strconv.ParseInt(c.QueryParam("p"), 10, 64)
-	if err != nil {
-		page = 1
-	}
-
-	filters := bson.D{{"name", primitive.Regex{Pattern: ".*" + c.QueryParam("name") + ".*", Options: "i"}}}
-
-	ctx := c.Request().Context()
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	res, count, err = user.UsrUsecase.GetAllWithPage(ctx, rp, page, filters, nil)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-
-	result := Response{
-		Total:       count,
-		PerPage:     rp,
-		CurrentPage: page,
-		LastPage:    int64(math.Ceil(float64(count) / float64(rp))),
-		From:        page*rp - rp + 1,
-		To:          page * rp,
-		User:        res,
-	}
-
-	return c.JSON(http.StatusOK, result)
-}
-
+// UpdateOne TODO list  UpdateOne
 func (user *UserHandler) UpdateOne(c echo.Context) error {
 
 	id := c.QueryParam("id")

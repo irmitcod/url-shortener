@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"log"
 	"time"
 	"url-shortener/config"
@@ -22,8 +23,6 @@ import (
 // @version  1.0
 func main() {
 	e := echo.New()
-	//config logger
-	//entry := config.NewLogger()
 
 	// Setup Configuration
 	configuration := config.GetConfig()
@@ -44,30 +43,47 @@ func main() {
 	cache := config.NewCache()
 	// Setup Service
 
+	//time out for connec
 	timeoutContext := time.Duration(configuration.MongoTimeout) * time.Second
 	database := config.NewMemoryClient(configuration)
 	redisRepository := redis.NewUrlRepository(database)
 
+	//get monogdb
 	mongoDatabase := config.App.Mongo.Database(configuration.MongoDB)
-
+	//this repository for mogno repository
 	userRepo := mongo.NewMongoRepository(mongoDatabase)
 	usrUsecase := _usecase.NewUserUsecase(userRepo, timeoutContext, redisRepository, cache)
 
+	//set jwt middleware
 	jwt := _jwt.NewJwtUsecase(userRepo, 4380*time.Hour, configuration)
 	userJwt := e.Group("")
+
+	//set api key middleware for user
+	userJwt.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
+		KeyLookup: "query:api-key",
+		Validator: func(key string, c echo.Context) (bool, error) {
+			c.Request().Header.Set("Authorization", fmt.Sprintf("Bearer %s", key))
+			return true, nil
+		},
+	}))
 	jwt.SetJwtUser(userJwt)
 	adminJwt := e.Group("")
 	jwt.SetJwtAdmin(adminJwt)
 	generalJwt := e.Group("")
 	jwt.SetJwtGeneral(generalJwt)
 
+	//init url shortner repository
 	urlShortenerRepo := _urlShortenerRepo.NewMongoRepository(mongoDatabase)
+
+	//Handle For urls shortener endpoint
 	urlUsecase := _urlusecase.NewUrlUsecase(urlShortenerRepo, timeoutContext, redisRepository, cache, lfuCach)
 	controller.NewUserHandler(e, userJwt, usrUsecase, urlUsecase, configuration)
+
 	//Handle For login endpoint
 	loginUsecase := _loginUsecase.NewLoginUsecase(userRepo, timeoutContext)
 	controller.NewLoginHandler(e, loginUsecase, configuration)
 
+	//Handle For urls shortener endpoint
 	controller.NewUrlHandler(userJwt, urlUsecase, database, configuration)
 
 	appPort := fmt.Sprintf(":%d", configuration.Port)

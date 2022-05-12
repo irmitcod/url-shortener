@@ -144,6 +144,7 @@ func (uu *urlUsecase) InsertOne(c context.Context, m *url_shortener.UrlShortener
 	m.ShortUrl = key
 	m.CreatedAt = time.Now()
 	m.UpdatedAt = time.Now()
+	m.ExpireAt = time.Now()
 
 	res, err := uu.urlRepo.InsertOne(ctx, m)
 	if err != nil {
@@ -156,61 +157,73 @@ func (uu *urlUsecase) InsertOne(c context.Context, m *url_shortener.UrlShortener
 	return res, nil
 }
 
-func (uu *urlUsecase) FindOne(c context.Context, id string) (*url_shortener.UrlShortener, error) {
-
-	ctx, cancel := context.WithTimeout(c, uu.contextTimeout)
-	defer cancel()
-
-	res, err := uu.urlRepo.FindOne(ctx, id)
-	if err != nil {
-		return res, err
-	}
-
-	return res, nil
-}
 func (uu *urlUsecase) FindOneByKey(c context.Context, id string) (string, error) {
 
+	//get from lfu cache for mos use short api
 	cache := uu.lfuCache.Get(id)
 	if cache != nil {
-		//i.entry.Infof("This  %s is already in lfu cache\n", url)
+		//set hit for each url visited and update on Mongodb
+		go func() {
+			f, e := uu.urlRepo.FindOneByKey(context.TODO(), id)
+			if e != nil {
+				return
+			}
+			f.Hits += 1
+			uu.urlRepo.UpdateOne(c, f, f.ID.Hex())
+		}()
+		//return main url from cache
 		return cache.(string), nil
 	}
 
 	ctx, cancel := context.WithTimeout(c, uu.contextTimeout)
 	defer cancel()
 
+	cache, err := uu.redisRepo.GetUrl(c, id)
+	if cache != nil {
+		//set hit for each url visited and update on Mongodb
+		go func() {
+			uu.lfuCache.Set(id, cache)
+			f, e := uu.urlRepo.FindOneByKey(context.TODO(), id)
+			if e != nil {
+				return
+			}
+			f.Hits += 1
+			uu.urlRepo.UpdateOne(c, f, f.ID.Hex())
+		}()
+		//return main url from cache
+		return cache.(string), nil
+	}
+
+	// find from by key
 	res, err := uu.urlRepo.FindOneByKey(ctx, id)
 	if err != nil {
 		return "", err
 	}
+	go func() {
+		f, e := uu.urlRepo.FindOneByKey(context.TODO(), id)
+		if e != nil {
+			return
+		}
+		f.Hits += 1
+		_, err := uu.urlRepo.UpdateOne(c, f, f.ID.Hex())
+		if err != nil {
+			return
+		}
+		return
+	}()
 	uu.lfuCache.Set(id, res.OriginalURL)
 	uu.redisRepo.CacheUrl(id, res.OriginalURL)
 
 	return res.OriginalURL, nil
 }
 
-func (uu *urlUsecase) GetAllWithPage(c context.Context, rp int64, p int64, filter interface{}, setsort interface{}) ([]url_shortener.UrlShortener, int64, error) {
-
-	ctx, cancel := context.WithTimeout(c, uu.contextTimeout)
-	defer cancel()
-
-	res, count, err := uu.urlRepo.GetAllWithPage(ctx, rp, p, filter, setsort)
-	if err != nil {
-		return res, count, err
-	}
-
-	return res, count, nil
+// UpdateOne TODO list UpdateOne
+func (uu *urlUsecase) UpdateOne(c context.Context, m *url_shortener.UrlShortener, id string) (*url_shortener.UrlShortener, error) {
+	return nil, nil
 }
 
-func (uu *urlUsecase) UpdateOne(c context.Context, m *url_shortener.UrlShortener, id string) (*url_shortener.UrlShortener, error) {
+// FindOne TODO list FindOne
+func (uu *urlUsecase) FindOne(c context.Context, id string) (*url_shortener.UrlShortener, error) {
 
-	ctx, cancel := context.WithTimeout(c, uu.contextTimeout)
-	defer cancel()
-
-	res, err := uu.urlRepo.UpdateOne(ctx, m, id)
-	if err != nil {
-		return res, err
-	}
-
-	return res, nil
+	return nil, nil
 }
