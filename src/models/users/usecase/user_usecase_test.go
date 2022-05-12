@@ -35,7 +35,7 @@ func TestInsertOne(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		mockUserRepo.On("InsertOne", mock.Anything, mock.AnythingOfType("*users.User")).Return(mockUser, nil).Once()
-		u := NewUserUsecase(mockUserRepo, time.Second*2, mockUrlRepo, mockLocalCaceh)
+		u := NewUserUsecase(mockUserRepo, time.Second*2, mockUrlRepo, mockLocalCaceh, nil)
 
 		a, err := u.InsertOne(context.TODO(), mockUser)
 
@@ -47,7 +47,7 @@ func TestInsertOne(t *testing.T) {
 	t.Run("error-failed", func(t *testing.T) {
 		mockUserRepo.On("InsertOne", mock.Anything, mock.AnythingOfType("*users.User")).Return(mockEmptyUser, errors.New("Unexpected")).Once()
 
-		u := NewUserUsecase(mockUserRepo, time.Second*2, mockUrlRepo, mockLocalCaceh)
+		u := NewUserUsecase(mockUserRepo, time.Second*2, mockUrlRepo, mockLocalCaceh, nil)
 
 		a, err := u.InsertOne(context.TODO(), mockUser)
 
@@ -82,7 +82,7 @@ func TestFindOne(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		mockUserRepo.On("FindOne", mock.Anything, mock.Anything).Return(mockUser, nil).Once()
-		u := NewUserUsecase(mockUserRepo, time.Second*2, mockUrlRepo, mockLocalCaceh)
+		u := NewUserUsecase(mockUserRepo, time.Second*2, mockUrlRepo, mockLocalCaceh, nil)
 
 		a, err := u.FindOne(context.TODO(), UserID)
 
@@ -94,7 +94,7 @@ func TestFindOne(t *testing.T) {
 	t.Run("error-failed", func(t *testing.T) {
 		mockUserRepo.On("FindOne", mock.Anything, mock.Anything).Return(mockEmptyUser, errors.New("Unexpected")).Once()
 
-		u := NewUserUsecase(mockUserRepo, time.Second*2, mockUrlRepo, mockLocalCaceh)
+		u := NewUserUsecase(mockUserRepo, time.Second*2, mockUrlRepo, mockLocalCaceh, nil)
 
 		a, err := u.FindOne(context.TODO(), UserID)
 

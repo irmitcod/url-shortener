@@ -33,7 +33,7 @@ func TestGetUser(t *testing.T) {
 	password := "master@123"
 	t.Run("success", func(t *testing.T) {
 		mockUserRepo.On("GetByCredential", mock.Anything, mock.Anything, mock.Anything).Return(mockUser, nil).Once()
-		u := NewLoginUsecase(mockUserRepo, time.Second*2)
+		u := NewLoginUsecase(mockUserRepo, time.Second*2, nil)
 		a, err := u.GetUser(context.TODO(), username, password)
 
 		assert.NoError(t, err)
@@ -43,7 +43,7 @@ func TestGetUser(t *testing.T) {
 	t.Run("error-failed", func(t *testing.T) {
 		mockUserRepo.On("GetByCredential", mock.Anything, mock.Anything, mock.Anything).Return(mockEmptyUser, errors.New("Unexpected")).Once()
 
-		u := NewLoginUsecase(mockUserRepo, time.Second*2)
+		u := NewLoginUsecase(mockUserRepo, time.Second*2, nil)
 
 		a, err := u.GetUser(context.TODO(), username, password)
 

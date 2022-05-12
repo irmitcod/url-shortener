@@ -19,13 +19,16 @@ import (
 	"url-shortener/src/utils/workerpool"
 )
 
-// @title    AISA API
+// @title    URl-Shortener API
 // @version  1.0
 func main() {
 	e := echo.New()
 
 	// Setup Configuration
 	configuration := config.GetConfig()
+
+	//config logger
+	entry := config.NewLogger()
 
 	// setup lfu cache
 	lfuCach := lfu.New()
@@ -52,7 +55,7 @@ func main() {
 	mongoDatabase := config.App.Mongo.Database(configuration.MongoDB)
 	//this repository for mogno repository
 	userRepo := mongo.NewMongoRepository(mongoDatabase)
-	usrUsecase := _usecase.NewUserUsecase(userRepo, timeoutContext, redisRepository, cache)
+	usrUsecase := _usecase.NewUserUsecase(userRepo, timeoutContext, redisRepository, cache, entry)
 
 	//set jwt middleware
 	jwt := _jwt.NewJwtUsecase(userRepo, 4380*time.Hour, configuration)
@@ -76,11 +79,11 @@ func main() {
 	urlShortenerRepo := _urlShortenerRepo.NewMongoRepository(mongoDatabase)
 
 	//Handle For urls shortener endpoint
-	urlUsecase := _urlusecase.NewUrlUsecase(urlShortenerRepo, timeoutContext, redisRepository, cache, lfuCach)
+	urlUsecase := _urlusecase.NewUrlUsecase(urlShortenerRepo, timeoutContext, redisRepository, cache, lfuCach, entry)
 	controller.NewUserHandler(e, userJwt, usrUsecase, urlUsecase, configuration)
 
 	//Handle For login endpoint
-	loginUsecase := _loginUsecase.NewLoginUsecase(userRepo, timeoutContext)
+	loginUsecase := _loginUsecase.NewLoginUsecase(userRepo, timeoutContext, entry)
 	controller.NewLoginHandler(e, loginUsecase, configuration)
 
 	//Handle For urls shortener endpoint

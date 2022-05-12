@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	log "github.com/sirupsen/logrus"
 	"time"
 	"url-shortener/config"
 	"url-shortener/src/models/url_shortener"
@@ -16,12 +17,15 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+var calculateRequest = 0
+
 type urlUsecase struct {
 	urlRepo        url_shortener.UrlRepository
 	contextTimeout time.Duration
 	redisRepo      redis2.UrlRepository
 	lfuCache       *lfu.Cache
 	cache          config.LocalCache
+	entry          *log.Entry
 }
 
 func (uu *urlUsecase) GetUrl(url string, userid int) (buffer string, err rest_error.RestErr) {
@@ -97,13 +101,14 @@ func (i *urlUsecase) CacheUrlWithChan(url string, file string, result chan worke
 	}
 }
 
-func NewUrlUsecase(u url_shortener.UrlRepository, to time.Duration, repository redis2.UrlRepository, cache config.LocalCache, l *lfu.Cache) url_shortener.UrlUsecase {
+func NewUrlUsecase(u url_shortener.UrlRepository, to time.Duration, repository redis2.UrlRepository, cache config.LocalCache, l *lfu.Cache, entry *log.Entry) url_shortener.UrlUsecase {
 	return &urlUsecase{
 		urlRepo:        u,
 		contextTimeout: to,
 		redisRepo:      repository,
 		lfuCache:       l,
 		cache:          cache,
+		entry:          entry,
 	}
 }
 
@@ -117,7 +122,7 @@ func (uu *urlUsecase) InsertOne(c context.Context, m *url_shortener.UrlShortener
 	cache := uu.lfuCache.Get(key)
 	if cache != nil {
 		//i.entry.Infof("This  %s is already in lfu cache\n", url)
-
+		uu.entry.Info("Key was in lfu cache ", key)
 		return &url_shortener.UrlShortener{
 			ShortUrl:    key,
 			OriginalURL: m.OriginalURL,
@@ -127,6 +132,7 @@ func (uu *urlUsecase) InsertOne(c context.Context, m *url_shortener.UrlShortener
 	//check url is invalid or not
 	b, _ := uu.redisRepo.GetUrl(ctx, key)
 	if len(b) > 0 {
+		uu.entry.Info("Key was in redis cache ", key)
 		return &url_shortener.UrlShortener{
 			ShortUrl:    key,
 			OriginalURL: m.OriginalURL,
@@ -148,6 +154,8 @@ func (uu *urlUsecase) InsertOne(c context.Context, m *url_shortener.UrlShortener
 
 	res, err := uu.urlRepo.InsertOne(ctx, m)
 	if err != nil {
+		uu.entry.Error("Error from insert url", key)
+
 		return res, err
 	}
 
@@ -158,40 +166,57 @@ func (uu *urlUsecase) InsertOne(c context.Context, m *url_shortener.UrlShortener
 }
 
 func (uu *urlUsecase) FindOneByKey(c context.Context, id string) (string, error) {
+	calculateRequest += 1
 
 	//get from lfu cache for mos use short api
 	cache := uu.lfuCache.Get(id)
+
 	if cache != nil {
-		//set hit for each url visited and update on Mongodb
-		go func() {
-			f, e := uu.urlRepo.FindOneByKey(context.TODO(), id)
-			if e != nil {
-				return
-			}
-			f.Hits += 1
-			uu.urlRepo.UpdateOne(c, f, f.ID.Hex())
-		}()
-		//return main url from cache
-		return cache.(string), nil
+		strUrl := cache.(string)
+		if len(strUrl) > 0 {
+			uu.entry.Info("Key was in lfu cache ", id)
+			//set hit for each url visited and update on Mongodb
+			go func() {
+				uu.entry.Info("start add hists for requested url ", id)
+				f, e := uu.urlRepo.FindOneByKey(context.TODO(), id)
+				if e != nil {
+					return
+				}
+				f.Hits += 1
+				uu.urlRepo.UpdateOne(c, f, f.ID.Hex())
+			}()
+			//return main url from cache
+			return strUrl, nil
+		}
+		uu.entry.Debug("Key was not in lfu cache ", id)
 	}
 
 	ctx, cancel := context.WithTimeout(c, uu.contextTimeout)
 	defer cancel()
 
 	cache, err := uu.redisRepo.GetUrl(c, id)
+
 	if cache != nil {
-		//set hit for each url visited and update on Mongodb
-		go func() {
-			uu.lfuCache.Set(id, cache)
-			f, e := uu.urlRepo.FindOneByKey(context.TODO(), id)
-			if e != nil {
-				return
-			}
-			f.Hits += 1
-			uu.urlRepo.UpdateOne(c, f, f.ID.Hex())
-		}()
-		//return main url from cache
-		return cache.(string), nil
+		strUrl := cache.(string)
+		if len(strUrl) > 0 {
+
+			uu.entry.Info("Key was in redis cache ", id)
+			//set hit for each url visited and update on Mongodb
+			go func() {
+				uu.entry.Info("start add hists for requested url ", id)
+				uu.lfuCache.Set(id, cache)
+				f, e := uu.urlRepo.FindOneByKey(context.TODO(), id)
+				if e != nil {
+					return
+				}
+				f.Hits += 1
+				uu.urlRepo.UpdateOne(c, f, f.ID.Hex())
+			}()
+			//return main url from cache
+			return strUrl, nil
+
+		}
+		uu.entry.Debug("Key was not in redis cache ", id)
 	}
 
 	// find from by key
@@ -200,6 +225,7 @@ func (uu *urlUsecase) FindOneByKey(c context.Context, id string) (string, error)
 		return "", err
 	}
 	go func() {
+		uu.entry.Info("start add hists for requested url ", id)
 		f, e := uu.urlRepo.FindOneByKey(context.TODO(), id)
 		if e != nil {
 			return

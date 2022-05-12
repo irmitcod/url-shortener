@@ -32,7 +32,7 @@ func TestInsertOne(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		mockUrlRepo.On("InsertOne", mock.Anything, mock.AnythingOfType("*url_shortener.UrlShortener")).Return(mockUser, nil).Once()
-		u := NewUrlUsecase(mockUrlRepo, time.Second*2, mockRedisRepository, mockLocalCaceh, mockLfuCache)
+		u := NewUrlUsecase(mockUrlRepo, time.Second*2, mockRedisRepository, mockLocalCaceh, mockLfuCache, nil)
 
 		a, err := u.InsertOne(context.TODO(), mockUser)
 
@@ -44,7 +44,7 @@ func TestInsertOne(t *testing.T) {
 	t.Run("error-failed", func(t *testing.T) {
 		mockUrlRepo.On("InsertOne", mock.Anything, mock.AnythingOfType("*url_shortener.UrlShortener")).Return(mockEmptyUser, errors.New("Unexpected")).Once()
 
-		u := NewUrlUsecase(mockUrlRepo, time.Second*2, mockRedisRepository, mockLocalCaceh, mockLfuCache)
+		u := NewUrlUsecase(mockUrlRepo, time.Second*2, mockRedisRepository, mockLocalCaceh, mockLfuCache, nil)
 
 		a, err := u.InsertOne(context.TODO(), mockUser)
 
