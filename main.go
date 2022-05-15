@@ -89,7 +89,8 @@ func main() {
 	//Handle For urls shortener endpoint
 	controller.NewUrlHandler(userJwt, urlUsecase, database, configuration)
 
-	appPort := fmt.Sprintf(":%d", configuration.Port)
+	appPort := fmt.Sprintf(":%s", "6067")
+	fmt.Println("Start server ", appPort)
 	log.Fatal(e.Start(appPort))
 
 }

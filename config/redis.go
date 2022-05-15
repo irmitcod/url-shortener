@@ -5,6 +5,7 @@ import (
 	"errors"
 	_redisCach "github.com/go-redis/cache/v8"
 	"github.com/go-redis/redis/v8"
+	"log"
 	"time"
 )
 
@@ -28,7 +29,7 @@ func NewMemoryClient(c *Config) *MemoryClient {
 		return shard.Ping(ctx).Err()
 	})
 	if err != nil {
-		panic(err)
+		log.Panicln(err)
 	}
 
 	mycache := _redisCach.New(&_redisCach.Options{
