@@ -27,7 +27,7 @@ services:
     volumes:
       ## keep redis data on localhost so we don't lose them ##
       - ./docker-volumes-data/redis:/data:Z
-#    command: redis-server --requirepass f0pii0pVKJYwp
+    command: redis-server --requirepass f0pii0pVKJYwp
     environment:
       - REDIS_REPLICATION_MODE=master
   urlshortener:

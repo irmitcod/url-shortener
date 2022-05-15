@@ -46,18 +46,45 @@ func InitMongoDatabase() mongo.Client {
 
 	client, err := mongo.NewClient(opt)
 	if err != nil {
+		log.Println("mongo.NewClient(opt)")
+		log.Println("mongo.NewClient(opt)")
+		log.Println("mongo.NewClient(opt)")
+		log.Println("mongo.NewClient(opt)")
+		log.Println("mongo.NewClient(opt)")
+		log.Println("mongo.NewClient(opt)")
+		log.Println("mongo.NewClient(opt)")
+		log.Println("mongo.NewClient(opt)")
 		log.Fatal(err)
 	}
 
 	err = client.Connect(ctx)
 	if err != nil {
+		log.Println("client.Connect(ctx)")
+		log.Println("client.Connect(ctx)")
+		log.Println("client.Connect(ctx)")
+		log.Println("client.Connect(ctx)")
+		log.Println("client.Connect(ctx)")
+		log.Println("client.Connect(ctx)")
+		log.Println("client.Connect(ctx)")
+		log.Println("client.Connect(ctx)")
 		log.Fatal(err)
 	}
 
-	err = client.Ping(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
+	//err = client.Ping(ctx)
+	//if err != nil {
+	//	log.Println("client.Ping(ctx)")
+	//	log.Println("client.Ping(ctx)")
+	//	log.Println("client.Ping(ctx)")
+	//	log.Println("client.Ping(ctx)")
+	//	log.Println("client.Ping(ctx)")
+	//	log.Println("client.Ping(ctx)")
+	//	log.Println("client.Ping(ctx)")
+	//	log.Println("client.Ping(ctx)")
+	//	log.Println("client.Ping(ctx)")
+	//	log.Println("client.Ping(ctx)")
+	//	log.Println("client.Ping(ctx)")
+	//	log.Fatal(err)
+	//}
 
 	return client
 }
