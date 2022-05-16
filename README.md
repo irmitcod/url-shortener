@@ -33,3 +33,9 @@ Let's design a URL shortening service like TinyURL. This service will provide sh
 ## Quick Start
 * This project using `docker-compose` as package manager.
 * Run `docker-compose up --build` 
+
+## API request
+* Create User POST http://localhost/user ->      params {Username:test,Password:test,Name:test}
+* Login request POST  http://localhost/login -> params {Username:test,Password:test}
+* set url POST  http://localhost/UrlShotener -> params {OriginalURL:http://test.com}
+* redirect url GET  http://localhost/{key} -> e.g  http://localhost/hgu4sdss
