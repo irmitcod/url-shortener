@@ -1,7 +1,7 @@
 # deploying stage
 FROM golang:1.18-alpine AS build
 
-ENV GO111MODULE=on
+ENV GO111MODULE=auto
 # Updates the repository and installs git
 RUN  apk update && apk upgrade
 RUN  apk add --no-cache git

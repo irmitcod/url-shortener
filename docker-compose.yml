@@ -1,7 +1,7 @@
 version: "3"
 services:
 
-  # Mongo Database config
+   #Mongo Database config
   mongo:
     image: mongo:latest
     container_name: UrlShortener-mongo
@@ -17,7 +17,7 @@ services:
     volumes:
       - ./mongodb:/data/db:Z
       - ./mongoconfig:/data/configdb:Z
-  # Application config
+   #Application config
 
   # Redis Database config
   redis:
@@ -44,6 +44,40 @@ services:
     depends_on:
       - redis
       - mongo
+    environment:
+      - APP_PORT=8000
+  urlshortener1:
+    container_name: UrlShortener-application1
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    #    environment:
+    #      REDIS_URL: redis:6379
+    #      REDIS_PASSWORD: f0pii0pVKJYwp
+    depends_on:
+      - redis
+      - mongo
+    environment:
+      - APP_PORT=8001
+  urlshortener2:
+    container_name: UrlShortener-application2
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    #    environment:
+    #      REDIS_URL: redis:6379
+    #      REDIS_PASSWORD: f0pii0pVKJYwp
+    depends_on:
+      - redis
+      - mongo
+    environment:
+      - APP_PORT=8002
   # Web server Config
   webserver:
     image: nginx:alpine
@@ -55,11 +89,12 @@ services:
       - ./deployment_conf/nginx/nginx.conf:/etc/nginx/nginx.conf:Z
     ports:
       ## run the webserver on port 6068 ##
-      - "7073:7073"
+      - "80:8080"
     depends_on:
       - urlshortener
+      - urlshortener1
+      - urlshortener2
 # Networks to be created to facilitate communication between containers
 networks:
-  default:
-    external:
-      name: external-backend
+  some-net:
+    driver: bridge

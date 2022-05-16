@@ -5,6 +5,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"log"
+	"os"
 	"time"
 	"url-shortener/config"
 	"url-shortener/src/controller"
@@ -89,7 +90,7 @@ func main() {
 	//Handle For urls shortener endpoint
 	controller.NewUrlHandler(userJwt, urlUsecase, database, configuration)
 
-	appPort := fmt.Sprintf(":%s", "6067")
+	appPort := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
 	fmt.Println("Start server ", appPort)
 	log.Fatal(e.Start(appPort))
 
