@@ -22,6 +22,7 @@ type UrlShortener struct {
 type UrlRepository interface {
 	InsertOne(ctx context.Context, u *UrlShortener) (*UrlShortener, error)
 	FindOne(ctx context.Context, id string) (*UrlShortener, error)
+	FindByHits(ctx context.Context) ([]UrlShortener, error)
 	FindOneByKey(ctx context.Context, id string) (*UrlShortener, error)
 	UpdateOne(ctx context.Context, cat *UrlShortener, id string) (*UrlShortener, error)
 }

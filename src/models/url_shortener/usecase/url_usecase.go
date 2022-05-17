@@ -172,6 +172,7 @@ func (uu *urlUsecase) FindOneByKey(c context.Context, id string) (string, error)
 	cache := uu.lfuCache.Get(id)
 
 	if cache != nil {
+
 		strUrl := cache.(string)
 		if len(strUrl) > 0 {
 			uu.entry.Info("Key was in lfu cache ", id)
@@ -189,6 +190,21 @@ func (uu *urlUsecase) FindOneByKey(c context.Context, id string) (string, error)
 			return strUrl, nil
 		}
 		uu.entry.Debug("Key was not in lfu cache ", id)
+	}
+
+	// add most hits url in cache every 20000 request
+	if calculateRequest == 20000 {
+		calculateRequest = 0
+		go func() {
+			items, err := uu.urlRepo.FindByHits(context.TODO())
+			if err != nil {
+				return
+			}
+			for _, item := range items {
+				uu.lfuCache.Set(item.ShortUrl, item.OriginalURL)
+				uu.redisRepo.CacheUrl(item.ShortUrl, item.OriginalURL)
+			}
+		}()
 	}
 
 	ctx, cancel := context.WithTimeout(c, uu.contextTimeout)
