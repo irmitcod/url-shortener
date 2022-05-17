@@ -15,6 +15,20 @@ type mongoRepository struct {
 	Collection mongo.Collection
 }
 
+func (m *mongoRepository) FindByHits(ctx context.Context) ([]url_shortener.UrlShortener, error) {
+
+	c, err := m.Collection.Find(ctx, bson.M{"hits": bson.M{"$gte": 1000}})
+	if err != nil {
+		return nil, err
+	}
+	var urls url_shortener.UrlShortener
+	err = c.All(ctx, &urls)
+	if err != nil {
+		return nil, err
+	}
+	return nil, err
+}
+
 const (
 	timeFormat     = "2006-01-02T15:04:05.999Z07:00" // reduce precision from RFC3339Nano as date format
 	collectionName = "urlShortener"
