@@ -3,7 +3,7 @@ Let's design a URL shortening service like TinyURL. This service will provide sh
 
 
 > **WARNING** \
-> THis project completely unstable and it's under the development and may changeign cods a lot
+> This project is completely unstable, and it's under the development and may change alot
 
 ## Features
 - [x] ✔️ Echo
@@ -11,6 +11,7 @@ Let's design a URL shortening service like TinyURL. This service will provide sh
 - [x] ✔️ Redis
 - [x] ✔️ Redis cache
 - [x] ✔️ LRU cache
+- [x] ✔️ LFU cache
 - [x] ✔️ Clean architecture
 - [ ] ❌     Mongodb sharding
 - [ ] ❌      ...
